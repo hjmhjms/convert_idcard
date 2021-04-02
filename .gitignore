@@ -101,3 +101,4 @@ Client/DerivedDataCache/*
 # Subvesion
 .svn/
 build/
+dist/
