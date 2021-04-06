@@ -102,3 +102,6 @@ Client/DerivedDataCache/*
 .svn/
 build/
 dist/
+
+.idea
+src/idcard_image
