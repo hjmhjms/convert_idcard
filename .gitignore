@@ -104,4 +104,4 @@ build/
 dist/
 
 .idea
-src/idcard_image
+idcard_image/

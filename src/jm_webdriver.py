@@ -22,6 +22,7 @@ class JmProxyProcess:
             self.m_ProxyProcessObj = Process(target=self._ProxyProcessRun)
             self.m_ProxyProcessObj.start()
 
+
     def Stop(self):
         if self.m_ProxyProcessObj is not None:
             print("JmProxyProcess stop")
@@ -31,15 +32,13 @@ class JmProxyProcess:
     def _ProxyProcessRun(self):
         from mitmproxy.tools._main import mitmweb, mitmdump
         # mitmweb(args=['-s', './http_proxy.py', '-p', '18321', '--web-port', '18323'])
-        mitmdump(args=['-s', './http_proxy.py', '-p', '18321', '-q'])
+        mitmdump(args=['-s', './src/http_proxy.py', '-p', '18321', '-q'])
 
 
 class JmWebDriver:
     def __init__(self, bShow=False):
-        toolsPath1 = os.path.dirname(os.path.realpath(__file__)) + "/tools/"
-        toolsPath2 = os.path.dirname(os.path.realpath(__file__)) + "/../tools/"
-        chromedriverPath1 = os.path.join(toolsPath1, "chromedriver.exe")
-        chromedriverPath2 = os.path.join(toolsPath2, "chromedriver.exe")
+        chromedriverPath1 = os.path.join(os.getcwd(),"tools", "chromedriver.exe")
+        chromedriverPath2 = os.path.join(os.getcwd(),"..","tools", "chromedriver.exe")
         print(chromedriverPath1)
         print(chromedriverPath2)
 

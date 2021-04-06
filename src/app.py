@@ -7,9 +7,9 @@ import json
 import multiprocessing
 import queue
 import sys
+import copy
 
-
-def Main_OnSubProcess(s_bRunning, queueJob, queueResult, nMark, lock, Init_OnSubProcess, DoJob_OnSubProcess):
+def Main_OnSubProcess(s_bRunning, queueJob, queueResult, nMark, lock, Init_OnSubProcess, DoJob_OnSubProcess,dictConfig):
     WebDriverObj = jm_webdriver.JmWebDriver(bShow=True)
 
     def OnSignalCallback(s, f):
@@ -21,7 +21,7 @@ def Main_OnSubProcess(s_bRunning, queueJob, queueResult, nMark, lock, Init_OnSub
     signal.signal(signal.SIGINT, OnSignalCallback)
     signal.signal(signal.SIGILL, OnSignalCallback)
 
-    Init_OnSubProcess(s_bRunning, WebDriverObj, nMark, lock)
+    Init_OnSubProcess(s_bRunning, WebDriverObj, nMark, lock,dictConfig)
 
     try:
         while s_bRunning.value:
@@ -71,10 +71,10 @@ class App:
             process = multiprocessing.Process(target=Main_OnSubProcess,
                                               args=(
                                               self.ms_bRunning, self.m_queueJob, self.m_queueResult, i, self.m_lock,
-                                              self.m_Init_OnSubProcess, self.m_DoJob_OnSubProcess))
+                                              self.m_Init_OnSubProcess, self.m_DoJob_OnSubProcess,copy.deepcopy(self.m_dictConfig)))
             process.start()
             self.m_listProcessesObj.append(process)
-            time.sleep(2)
+            time.sleep(3)
 
     # -----------------------------------
 
@@ -87,7 +87,7 @@ class App:
         self.m_ProxyProcessObj.Start()
 
     def InitConfig(self):
-        curDir = os.path.dirname(os.path.abspath(__file__))
+        curDir = os.getcwd()
         configFile = os.path.join(curDir, "config.json")
         try:
             with open(configFile, "r", encoding="utf-8") as FileObj:
@@ -105,6 +105,7 @@ class App:
         self.InitWebProxy()
         time.sleep(1)
         self.InitProcesses()
+
 
     def InitSignal(self):
         signal.signal(signal.SIGINT, self.OnSignalCallback)

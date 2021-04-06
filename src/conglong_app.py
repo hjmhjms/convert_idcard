@@ -15,12 +15,12 @@ import copy
 
 # https://certify.tmall.hk/idcard/info.htm?spm=a1z09.1.0.0.6ef53606KVmF4u&id=1694059164476038168
 
-def Init_OnSubProcess(s_bRunning, WebDriverObj, nMark, LockObj):
+def Init_OnSubProcess(s_bRunning, WebDriverObj, nMark, LockObj,dictConfig):
     WebDriverObj.SetUrl(
         "https://trade.taobao.com/trade/itemlist/list_sold_items.htm?mytmenu=ymbb&spm=a217wi.openworkbeanchtmall_web")
     WebDriverObj.GetEngineDriverObj().find_element_by_link_text('密码登录').click()
-    WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-password').send_keys(r'qwer147852')
-    WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-id').send_keys(r'丛龙海外旗舰店:技术')
+    WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-password').send_keys(dictConfig["密码"])
+    WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-id').send_keys(dictConfig["用户名"])
     WebDriverObj.GetEngineDriverObj().find_element_by_class_name("fm-submit").click()
     WebDriverObj.WaitTitle(s_bRunning, "天猫千牛工作台")
 
@@ -75,7 +75,8 @@ class CongLongApp(app.App):
     def GetOutFilePath(self):
         orderPath = self.GetConfig()["输出订单"]
         if not os.path.isabs(orderPath):
-            curDir = os.path.dirname(os.path.abspath(__file__))
+            #curDir = os.path.dirname(os.path.abspath(__file__))
+            curDir = os.getcwd()
             orderPath = os.path.join(curDir, orderPath)
 
         return orderPath
@@ -104,14 +105,16 @@ class CongLongApp(app.App):
     def GetIdcardOutDir(self):
         szPath = self.GetConfig()["身份证输出目录"]
         if not os.path.isabs(szPath):
-            curDir = os.path.dirname(os.path.abspath(__file__))
+            #curDir = os.path.dirname(os.path.abspath(__file__))
+            curDir = os.getcwd()
             szPath = os.path.join(curDir, szPath)
         return szPath
 
     def GetJobList(self):
         orderPath = self.GetConfig()["输入订单"]
         if not os.path.isabs(orderPath):
-            curDir = os.path.dirname(os.path.abspath(__file__))
+            #curDir = os.path.dirname(os.path.abspath(__file__))
+            curDir = os.getcwd()
             orderPath = os.path.join(curDir, orderPath)
 
         print(f"读取订单xls:{orderPath}")
