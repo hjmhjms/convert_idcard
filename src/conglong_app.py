@@ -5,6 +5,7 @@ import time
 import excel_reader
 from selenium.common.exceptions import NoSuchElementException
 import os
+import copy
 
 
 #
@@ -14,44 +15,91 @@ import os
 
 # https://certify.tmall.hk/idcard/info.htm?spm=a1z09.1.0.0.6ef53606KVmF4u&id=1694059164476038168
 
+def Init_OnSubProcess(s_bRunning, WebDriverObj, nMark, LockObj):
+    WebDriverObj.SetUrl(
+        "https://trade.taobao.com/trade/itemlist/list_sold_items.htm?mytmenu=ymbb&spm=a217wi.openworkbeanchtmall_web")
+    WebDriverObj.GetEngineDriverObj().find_element_by_link_text('密码登录').click()
+    WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-password').send_keys(r'qwer147852')
+    WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-id').send_keys(r'丛龙海外旗舰店:技术')
+    WebDriverObj.GetEngineDriverObj().find_element_by_class_name("fm-submit").click()
+    WebDriverObj.WaitTitle(s_bRunning, "天猫千牛工作台")
+
+
+def DoJob_OnSubProcess(s_bRunning, WebDriverObj, wsRequest, nMark, LockObj):
+    orderid, dictOrder, szOutDir = wsRequest
+
+    WebDriverObj.SetUrlUntilSucc(s_bRunning, f"https://certify.tmall.hk/idcard/info.htm?id={orderid}")
+    bHaveIdCard = False
+    try:
+        WebDriverObj.GetEngineDriverObj().find_element_by_class_name("sfz-info")
+        bHaveIdCard = True
+    except NoSuchElementException as e:
+        bHaveIdCard = False
+
+    if not bHaveIdCard:
+        return dictOrder
+
+    # 获取基本信息
+    dictOrder["身份证"] = WebDriverObj.GetEngineDriverObj().find_element_by_xpath(
+        '//*[@id="id-card"]/div[2]/table/tbody/tr[3]/td[2]').text
+    dictOrder["姓名"] = WebDriverObj.GetEngineDriverObj().find_element_by_xpath(
+        '//*[@id="id-card"]/div[2]/table/tbody/tr[2]/td[2]').text
+
+    # 获取图片
+    WebDriverObj.SetUrlUntilSucc(s_bRunning, f'https://certify.tmall.hk/idcard/image.htm?id={orderid}&t=1')
+    screenshot1 = WebDriverObj.GetEngineDriverObj().get_screenshot_as_png()
+    WebDriverObj.SetUrlUntilSucc(s_bRunning, f'https://certify.tmall.hk/idcard/image.htm?id={orderid}&t=2')
+    screenshot2 = WebDriverObj.GetEngineDriverObj().get_screenshot_as_png()
+
+    from_image1 = Image.open(BytesIO(screenshot1))
+    from_image2 = Image.open(BytesIO(screenshot2))
+    w = max(from_image1.size[0], from_image2.size[0])
+    h = max(from_image1.size[1], from_image2.size[1])
+    to_image = Image.new('RGB', (w, h * 2))
+    to_image.paste(from_image1, (0, 0))
+    to_image.paste(from_image2, (0, h))
+    to_image.save(os.path.join(szOutDir, f'{dictOrder["身份证"]}.jpg'))
+    return dictOrder
+
+
 class CongLongApp(app.App):
     def __init__(self):
-        super().__init__()
+        super().__init__(Init_OnSubProcess, DoJob_OnSubProcess)
 
-    def Loop(self):
-        self.GetWebDriver().SetUrl(
-            "https://trade.taobao.com/trade/itemlist/list_sold_items.htm?mytmenu=ymbb&spm=a217wi.openworkbeanchtmall_web")
-        self.GetWebDriver().GetEngineDriverObj().find_element_by_link_text('密码登录').click()
-        self.GetWebDriver().GetEngineDriverObj().find_element_by_name('fm-login-password').send_keys(r'qwer147852')
-        self.GetWebDriver().GetEngineDriverObj().find_element_by_name('fm-login-id').send_keys(r'丛龙海外旗舰店:技术')
-        self.GetWebDriver().GetEngineDriverObj().find_element_by_class_name("fm-submit").click()
-        self.GetWebDriver().WaitTitle("天猫千牛工作台")
+    def Init(self):
+        super().Init()
 
-        dictOrderList, listKeyIndex = self.GetJobList()
+        self.CalcJob()
+        self.ReCreateOutFile()
+
+    def GetOutFilePath(self):
+        orderPath = self.GetConfig()["输出订单"]
+        if not os.path.isabs(orderPath):
+            curDir = os.path.dirname(os.path.abspath(__file__))
+            orderPath = os.path.join(curDir, orderPath)
+
+        return orderPath
+
+    def ReCreateOutFile(self):
+        szPath = self.GetOutFilePath()
+        if os.path.exists(szPath):
+            os.remove(szPath)
+        self.WriteOutFile([["交易订单号", "身份证", "姓名"]])
+
+    def WriteOutFile(self, listValue):
+        szPath = self.GetOutFilePath()
+        excel_reader.WriteExcelAppend(szPath, listValue)
+
+    def CalcJob(self):
+        dictOrders = self.GetJobList()
+        print(f"一共要处理{len(dictOrders)}个job")
+
         # 身份证输出目录
         szOutDir = self.GetIdcardOutDir()
         os.makedirs(szOutDir, exist_ok=True)
 
-        # print(dictOrderList, listKeyIndex)
-
-        nB = time.time()
-        i = 0
-        nSucc = 0
-        nFail = 0
-        for orderid, dictOrder in dictOrderList.items():
-            # i += 1
-            # if i > 3:
-            #     break
-            if self.DoOneOrder(orderid, dictOrder, szOutDir):
-                nSucc += 1
-            else:
-                nFail += 1
-
-        nC = time.time()
-
-        print("耗时", nSucc, nFail, nC - nB)
-        while self.IsRunning():
-            time.sleep(1)
+        for orderid, dictOneOrder in dictOrders.items():
+            self.AddJob((orderid, copy.deepcopy(dictOneOrder), szOutDir))  # 交易订单号
 
     def GetIdcardOutDir(self):
         szPath = self.GetConfig()["身份证输出目录"]
@@ -67,42 +115,18 @@ class CongLongApp(app.App):
             orderPath = os.path.join(curDir, orderPath)
 
         print(f"读取订单xls:{orderPath}")
-        dictOrderList, listKeyIndex = excel_reader.ReadExcelFileData(orderPath)
-        return dictOrderList, listKeyIndex
+        dictOrders, listKeyIndex = excel_reader.ReadExcelFileData(orderPath)
+        dictRet = {}
+        for orderid, dictOneOrder in dictOrders.items():
+            if len(dictOneOrder.get("身份证", "")) == 0:
+                dictRet[orderid] = dictOneOrder
+        return dictRet
 
-    def DoOneOrder(self, orderid, dictOrder, szOutImgDir):
-        self.GetWebDriver().SetUrlUntilSucc(f"https://certify.tmall.hk/idcard/info.htm?id={orderid}")
-        bHaveIdCard = False
-        try:
-            self.GetWebDriver().GetEngineDriverObj().find_element_by_class_name("sfz-info")
-            bHaveIdCard = True
-        except NoSuchElementException as e:
-            bHaveIdCard = False
-
-        if not bHaveIdCard:
-            print(f"{orderid}:无身份证")
-            return False
-
-        # 获取基本信息
-        dictOrder["身份证"] = repr(self.GetWebDriver().GetEngineDriverObj().find_element_by_xpath(
-            '//*[@id="id-card"]/div[2]/table/tbody/tr[3]/td[2]').text)
-        dictOrder["姓名"] = repr(self.GetWebDriver().GetEngineDriverObj().find_element_by_xpath(
-            '//*[@id="id-card"]/div[2]/table/tbody/tr[2]/td[2]').text)
-        print(f'{orderid}:有身份证,{dictOrder["身份证"]},{dictOrder["姓名"]}')
-
-        # 获取图片
-        self.GetWebDriver().SetUrlUntilSucc(f'https://certify.tmall.hk/idcard/image.htm?id={orderid}&t=1')
-        screenshot1 = self.GetWebDriver().GetEngineDriverObj().get_screenshot_as_png()
-        self.GetWebDriver().SetUrlUntilSucc(f'https://certify.tmall.hk/idcard/image.htm?id={orderid}&t=2')
-        screenshot2 = self.GetWebDriver().GetEngineDriverObj().get_screenshot_as_png()
-
-        from_image1 = Image.open(BytesIO(screenshot1))
-        from_image2 = Image.open(BytesIO(screenshot2))
-        w = max(from_image1.size[0], from_image2.size[0])
-        h = max(from_image1.size[1], from_image2.size[1])
-        to_image = Image.new('RGB', (w, h * 2))
-        to_image.paste(from_image1, (0, 0))
-        to_image.paste(from_image2, (0, h))
-        to_image.save(os.path.join(szOutImgDir, f'{dictOrder["身份证"]}.jpg'))
-        print(f'order: {orderid} finfish')
-        return True
+    def DispatchResult(self, result):
+        orderid = result.get("交易订单号", "")
+        idcard = result.get("身份证", "")
+        name = result.get("姓名", "")
+        if orderid:
+            listValue = [[orderid, idcard, name]]
+            self.WriteOutFile(listValue)
+        print(f'完成 {result}')

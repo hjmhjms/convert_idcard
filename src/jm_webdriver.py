@@ -77,9 +77,9 @@ class JmWebDriver:
         self.m_DriverObj.set_window_size(1600, 800)
         print("InitDriver succ")
 
-    def SetUrlUntilSucc(self, szUrl):
+    def SetUrlUntilSucc(self, s_bRunning, szUrl):
         print(f"SetUrlUntilSucc {szUrl}")
-        while 1:
+        while s_bRunning.value:
             try:
                 self.m_DriverObj.set_page_load_timeout(30)
                 self.m_DriverObj.get(szUrl)
@@ -90,7 +90,6 @@ class JmWebDriver:
                 traceback.print_stack()
 
     def SetUrl(self, szUrl):
-        print(f"SetUrl {szUrl}")
         self.m_DriverObj.set_page_load_timeout(30)
         self.m_DriverObj.get(szUrl)
 
@@ -100,13 +99,15 @@ class JmWebDriver:
 
         # listName = driver.find_elements_by_class_name("symbol-name")
 
-    def WaitTitle(self, szTitle):
-        while theApp.IsRunning():
+    def WaitTitle(self, s_bRunning, szTitle):
+        while s_bRunning.value:
             try:
                 WebDriverWait(self.m_DriverObj, 0.5).until(ec.title_is(szTitle))  # 等待元素出现
+                return
             except selenium.common.exceptions.TimeoutException as e:
                 continue
-            break
+            except Exception as e:
+                continue
 
     def GetEngineDriverObj(self):
         return self.m_DriverObj

@@ -18,3 +18,7 @@ def Main():
 
 if __name__ == '__main__':
     Main()
+    sys.exit(0)
+    print("finish")
+
+
