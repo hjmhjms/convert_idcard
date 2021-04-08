@@ -2,7 +2,8 @@
 
   "并发多少个": 6,
   "输入订单": "order_list.xlsx",
-  "输出订单": "order_list_out.xls",
+  "输出有身份证订单": "order_list_out_有身份证.xls",
+  "输出无身份证订单": "order_list_out_无身份证.xls",
   "身份证输出目录":"./idcard_image",
   "用户名":"长青海外旗舰店:katherine",
   "密码": "qaz123456"

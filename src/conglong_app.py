@@ -72,23 +72,38 @@ class CongLongApp(app.App):
         self.CalcJob()
         self.ReCreateOutFile()
 
-    def GetOutFilePath(self):
-        orderPath = self.GetConfig()["输出订单"]
+    def GetOutFilePath_HaveID(self):
+        orderPath = self.GetConfig()["输出有身份证订单"]
         if not os.path.isabs(orderPath):
-            #curDir = os.path.dirname(os.path.abspath(__file__))
             curDir = os.getcwd()
             orderPath = os.path.join(curDir, orderPath)
+        return orderPath
 
+    def GetOutFilePath_NoID(self):
+        orderPath = self.GetConfig()["输出无身份证订单"]
+        if not os.path.isabs(orderPath):
+            curDir = os.getcwd()
+            orderPath = os.path.join(curDir, orderPath)
         return orderPath
 
     def ReCreateOutFile(self):
-        szPath = self.GetOutFilePath()
+        szPath = self.GetOutFilePath_HaveID()
         if os.path.exists(szPath):
             os.remove(szPath)
-        self.WriteOutFile([["交易订单号", "身份证", "姓名"]])
 
-    def WriteOutFile(self, listValue):
-        szPath = self.GetOutFilePath()
+        szPath = self.GetOutFilePath_NoID()
+        if os.path.exists(szPath):
+            os.remove(szPath)
+
+        self.WriteOutFile_HaveID([["交易订单号", "身份证", "姓名"]])
+        self.WriteOutFile_NoID([["交易订单号", "身份证", "姓名"]])
+
+    def WriteOutFile_HaveID(self, listValue):
+        szPath = self.GetOutFilePath_HaveID()
+        excel_reader.WriteExcelAppend(szPath, listValue)
+
+    def WriteOutFile_NoID(self, listValue):
+        szPath = self.GetOutFilePath_NoID()
         excel_reader.WriteExcelAppend(szPath, listValue)
 
     def CalcJob(self):
@@ -131,5 +146,8 @@ class CongLongApp(app.App):
         name = result.get("姓名", "")
         if orderid:
             listValue = [[orderid, idcard, name]]
-            self.WriteOutFile(listValue)
+            if idcard:
+                self.WriteOutFile_HaveID(listValue)
+            else:
+                self.WriteOutFile_NoID(listValue)
         print(f'完成 {result}')
