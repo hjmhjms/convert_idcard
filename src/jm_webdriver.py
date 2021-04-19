@@ -22,7 +22,6 @@ class JmProxyProcess:
             self.m_ProxyProcessObj = Process(target=self._ProxyProcessRun)
             self.m_ProxyProcessObj.start()
 
-
     def Stop(self):
         if self.m_ProxyProcessObj is not None:
             print("JmProxyProcess stop")
@@ -37,8 +36,8 @@ class JmProxyProcess:
 
 class JmWebDriver:
     def __init__(self, bShow=False):
-        chromedriverPath1 = os.path.join(os.getcwd(),"tools", "chromedriver.exe")
-        chromedriverPath2 = os.path.join(os.getcwd(),"..","tools", "chromedriver.exe")
+        chromedriverPath1 = os.path.join(os.getcwd(), "tools", "chromedriver.exe")
+        chromedriverPath2 = os.path.join(os.getcwd(), "..", "tools", "chromedriver.exe")
         print(chromedriverPath1)
         print(chromedriverPath2)
 
@@ -102,6 +101,17 @@ class JmWebDriver:
         while s_bRunning.value:
             try:
                 WebDriverWait(self.m_DriverObj, 0.5).until(ec.title_is(szTitle))  # 等待元素出现
+                return
+            except selenium.common.exceptions.TimeoutException as e:
+                continue
+            except Exception as e:
+                continue
+
+    def WaitUrlContain(self, s_bRunning, szContain):
+        # "https://seller.yunjiglobal.com/popadminweb/index"
+        while s_bRunning.value:
+            try:
+                WebDriverWait(self.m_DriverObj, 0.5).until(ec.url_contains(szContain))  # 等待元素出现
                 return
             except selenium.common.exceptions.TimeoutException as e:
                 continue
