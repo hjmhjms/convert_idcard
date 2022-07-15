@@ -1,7 +1,7 @@
 # pip install mitmproxy
 
 TARGET_URL = 'https://g.alicdn.com/secdev/sufei_data/3.8.1/index.js'
-INJECT_TEXT = 'Object.defineProperties(navigator,{webdriver:{get:() => false}});'
+INJECT_TEXT = 'Object.defineProperties(navigator,{webdriver:{get:() => undefined}});'
 
 
 def response(flow):

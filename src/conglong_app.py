@@ -23,6 +23,7 @@ def Init_OnSubProcess(s_bRunning, WebDriverObj, nMark, LockObj,dictConfig):
     WebDriverObj.GetEngineDriverObj().find_element_by_name('fm-login-id').send_keys(dictConfig["用户名"])
     WebDriverObj.GetEngineDriverObj().find_element_by_class_name("fm-submit").click()
     WebDriverObj.WaitTitle(s_bRunning, "天猫千牛工作台")
+    #WebDriverObj.WaitTitle(s_bRunning, "天猫国际商家工作台")
 
 
 def DoJob_OnSubProcess(s_bRunning, WebDriverObj, wsRequest, nMark, LockObj):
